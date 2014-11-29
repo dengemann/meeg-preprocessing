@@ -1,0 +1,5 @@
+include *.rst
+include meeg_preprocessing/__init__.py
+recursive-include meeg_preprocessing *.py
+recursive-include meeg_preprocessing/tests *.py
+recursive-include meeg_preprocessing/tests/data *.fif
