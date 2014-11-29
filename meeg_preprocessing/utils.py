@@ -1,5 +1,5 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
-# License: BSD-3
+# License: BSD (3-clause)
 
 from mne import pick_types
 

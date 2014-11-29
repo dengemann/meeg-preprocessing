@@ -108,8 +108,8 @@ def check_apply_filter(raw, subject, filter_params=None,
         second_line.set_label('{} - filtered'.format(ch_type))
         ax.legend(loc='best')
 
-    fig.suptitle('Multitaper PSD'.format(subject))
-    report.add_figs_to_section(fig, 'filter PSD spectra',
+    fig.suptitle('Multitaper PSD')
+    report.add_figs_to_section(fig, 'filter PSD spectra {}'.format(subject),
                                'FILTER', scale=img_scale)
     return fig, report
 
@@ -181,7 +181,7 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     ############################################################################
     # 2) identify bad components by analyzing latent sources.
 
-    title = '%s related to %s artifacts (red)'
+    title = '%s related to %s artifacts (red) ({})'.format(subject)
 
     # generate ECG epochs use detection via phase statistics
 
@@ -207,14 +207,16 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     if len(ecg_inds) > 0:
         fig = ica.plot_scores(scores, exclude=ecg_inds,
                               title=title % ('scores', 'ecg'))
-        report.add_figs_to_section(fig, 'scores', section=comment + 'ECG',
+        report.add_figs_to_section(fig, 'scores ({})'.format(subject),
+                                   section=comment + 'ECG',
                                    scale=img_scale)
 
         show_picks = np.abs(scores).argsort()[::-1][:5]
 
         fig = ica.plot_sources(raw, show_picks, exclude=ecg_inds,
                                title=title % ('components', 'ecg'))
-        report.add_figs_to_section(fig, 'sources', section=comment + 'ECG',
+        report.add_figs_to_section(fig, 'sources ({})'.format(subject),
+                                   section=comment + 'ECG',
                                    scale=img_scale)
 
         fig = ica.plot_components(ecg_inds, ch_type=topo_ch_type,
@@ -227,12 +229,13 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
 
         ecg_evoked = ecg_epochs.average(picks=picks)
         fig = ica.plot_sources(ecg_evoked, exclude=ecg_inds)
-        report.add_figs_to_section(fig, 'evoked sources',
+        report.add_figs_to_section(fig, 'evoked sources ({})'.format(subject),
                                    section=comment + 'ECG',
                                    scale=img_scale)
 
         fig = ica.plot_overlay(ecg_evoked, exclude=ecg_inds)
-        report.add_figs_to_section(fig, 'rejection overlay',
+        report.add_figs_to_section(fig,
+                                   'rejection overlay ({})'.format(subject),
                                    section=comment + 'ECG',
                                    scale=img_scale)
 
@@ -241,7 +244,8 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     if len(eog_inds) > 0:
         fig = ica.plot_scores(scores, exclude=eog_inds,
                               title=title % ('scores', 'eog'))
-        report.add_figs_to_section(fig, 'scores', section=comment + 'EOG',
+        report.add_figs_to_section(fig, 'scores ({})'.format(subject),
+                                   section=comment + 'EOG',
                                    scale=img_scale)
 
         fig = ica.plot_sources(raw, eog_inds, exclude=ecg_inds,
@@ -261,17 +265,17 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         eog_evoked = create_eog_epochs(raw, tmin=eog_tmin, tmax=eog_tmax,
                                        picks=None).average(picks=picks)
         fig = ica.plot_sources(eog_evoked, exclude=eog_inds)
-        report.add_figs_to_section(fig, 'evoked sources',
+        report.add_figs_to_section(fig, 'evoked sources ({})'.format(subject),
                                    section=comment + 'EOG', scale=img_scale)
 
         fig = ica.plot_overlay(eog_evoked, exclude=eog_inds)
-        report.add_figs_to_section(fig, 'rejection overlay',
+        report.add_figs_to_section(fig, 'rejection overlay({})'.format(subject),
                                    section=comment + 'EOG', scale=img_scale)
 
     # check the amplitudes do not change
     if len(ica.exclude) > 0:
         fig = ica.plot_overlay(raw)  # EOG artifacts remain
-        report.add_figs_to_section(fig, 'rejection overlay',
+        report.add_figs_to_section(fig, 'rejection overlay({})'.format(subject),
                                    section=comment + 'RAW', scale=img_scale)
 
     return ica, report

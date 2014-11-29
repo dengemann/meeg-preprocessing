@@ -1,5 +1,5 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
-# License: BSD-3
+# License: BSD (3-clause)
 
 import numpy as np
 from nose.tools import assert_equal
