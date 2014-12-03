@@ -66,7 +66,8 @@ def check_apply_filter(raw, subject, filter_params=None,
     if not isinstance(filter_params, (list, tuple)):
         filter_params = [filter_params]
     if notch_filter_params is None:
-        notch_filter_params = dict(freqs=(50, 100, 150,), method='fft')
+        notch_filter_params = dict(freqs=(50, 100, 150, 200, 250,),
+                                   method='fft')
     if report is None:
         report = Report(subject)
 
@@ -116,7 +117,8 @@ def check_apply_filter(raw, subject, filter_params=None,
 
 def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
                 reject=None, ecg_tmin=-0.5, ecg_tmax=0.5, eog_tmin=-0.5,
-                eog_tmax=0.5, n_max_ecg=3, n_max_eog=1, img_scale=1.0,
+                eog_tmax=0.5, n_max_ecg=3, n_max_eog=1,
+                n_max_ecg_epochs=200, img_scale=1.0,
                 report=None):
     """Run ICA in raw data
 
@@ -155,10 +157,13 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         Start time before rog event. Defaults to -0.5.
     eog_tmax : float
         End time after rog event. Defaults to 0.5.
-    n_max_ecg : int
+    n_max_ecg : int | None
         The maximum number of ECG components to exclude. Defaults to 3.
-    n_max_eog : int
+    n_max_eog : int | None
         The maximum number of EOG components to exclude. Defaults to 1.
+    n_max_ecg_epochs : int
+        The maximum number of ECG epochs to use for phase-consistency
+        estimation. Defaults to 200.
     scale_img : float
         The scaling factor for the report. Defaults to 1.0.
     report : instance of Report | None
@@ -175,20 +180,9 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         report = Report(subject=subject, title='ICA preprocessing')
     if n_components == 'rank':
         n_components = raw.estimate_rank(picks=picks)
-    ica = ICA(n_components=n_components, max_pca_components=None)
+    ica = ICA(n_components=n_components, max_pca_components=None,
+              max_iter=256)
     ica.fit(raw, picks=picks, decim=decim, reject=reject)
-
-    ############################################################################
-    # 2) identify bad components by analyzing latent sources.
-
-    title = '%s related to %s artifacts (red) ({})'.format(subject)
-
-    # generate ECG epochs use detection via phase statistics
-
-    ecg_epochs = create_ecg_epochs(raw, tmin=ecg_tmin, tmax=ecg_tmax,
-                                   picks=None)
-
-    ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
 
     comment = []
     for ch in ('mag', 'grad', 'eeg'):
@@ -204,16 +198,34 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         topo_ch_type = 'grad'
     elif 'EEG' in comment:
         topo_ch_type = 'eeg'
+
+    ############################################################################
+    # 2) identify bad components by analyzing latent sources.
+
+    title = '%s related to %s artifacts (red) ({})'.format(subject)
+
+    # generate ECG epochs use detection via phase statistics
+
+    ecg_epochs = create_ecg_epochs(raw, tmin=ecg_tmin, tmax=ecg_tmax,
+                                   picks=None, reject={'mag': 5e-12})
+    n_ecg_epochs_found = len(ecg_epochs.events)
+    n_max_ecg_epochs = min(n_max_ecg_epochs, n_ecg_epochs_found)
+    sel_ecg_epochs = np.arange(n_ecg_epochs_found)
+    rng = np.random.RandomState(42)
+    rng.shuffle(sel_ecg_epochs)
+    ecg_epochs = ecg_epochs[sel_ecg_epochs[:n_max_ecg_epochs]]
+
+    ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
     if len(ecg_inds) > 0:
+        ecg_evoked = ecg_epochs.average(picks=picks)
+        del ecg_epochs
         fig = ica.plot_scores(scores, exclude=ecg_inds,
                               title=title % ('scores', 'ecg'))
         report.add_figs_to_section(fig, 'scores ({})'.format(subject),
                                    section=comment + 'ECG',
                                    scale=img_scale)
 
-        show_picks = np.abs(scores).argsort()[::-1][:5]
-
-        fig = ica.plot_sources(raw, show_picks, exclude=ecg_inds,
+        fig = ica.plot_sources(raw, ecg_inds, exclude=ecg_inds,
                                title=title % ('components', 'ecg'))
         report.add_figs_to_section(fig, 'sources ({})'.format(subject),
                                    section=comment + 'ECG',
@@ -227,7 +239,6 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         ecg_inds = ecg_inds[:n_max_ecg]
         ica.exclude += ecg_inds
 
-        ecg_evoked = ecg_epochs.average(picks=picks)
         fig = ica.plot_sources(ecg_evoked, exclude=ecg_inds)
         report.add_figs_to_section(fig, 'evoked sources ({})'.format(subject),
                                    section=comment + 'ECG',
