@@ -198,6 +198,16 @@ def set_eog_ecg_channels(raw, eog_ch='EEG062', ecg_ch='EEG063'):
     ----------
     raw : instance of Raw
         The raw object.
+    eog_ch : list | str
+        EOG channel name(s).
+    ecg_ch : list | str
+        ECG channel name(s).
     """
-    raw.info['chs'][raw.ch_names.index(eog_ch)]['kind'] = FIFF.FIFFV_EOG_CH
-    raw.info['chs'][raw.ch_names.index(ecg_ch)]['kind'] = FIFF.FIFFV_ECG_CH
+    if isinstance(eog_ch, basestring):
+        eog_ch = [eog_ch]
+    if isinstance(ecg_ch, basestring):
+        ecg_ch = [ecg_ch]
+    for channel in eog_ch:
+        raw.info['chs'][raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_EOG_CH
+    for channel in eog_ch:
+        raw.info['chs'][raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_ECG_CH
