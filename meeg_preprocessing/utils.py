@@ -209,5 +209,5 @@ def set_eog_ecg_channels(raw, eog_ch='EEG062', ecg_ch='EEG063'):
         ecg_ch = [ecg_ch]
     for channel in eog_ch:
         raw.info['chs'][raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_EOG_CH
-    for channel in eog_ch:
+    for channel in ecg_ch:
         raw.info['chs'][raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_ECG_CH
