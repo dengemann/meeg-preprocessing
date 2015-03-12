@@ -5,4 +5,4 @@ from . import preprocessing
 from .preprocessing import check_apply_filter, compute_ica
 from . import utils
 
-__version__ = '0.01.dev'
+__version__ = '0.1.dev0'
