@@ -206,10 +206,16 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     title = '%s related to %s artifacts (red) ({})'.format(subject)
 
     # generate ECG epochs use detection via phase statistics
+    reject_ = {'mag': 5e-12, 'grad': 5000e-13, 'eeg': 300e-6}
+    if reject is not None:
+        reject_.update(reject)
+    for ch_type in ['mag', 'grad', 'eeg']:
+        if ch_type not in ica:
+            reject_.pop(ch_type)
 
     picks_ = np.array([raw.ch_names.index(k) for k in ica.ch_names])
     ecg_epochs = create_ecg_epochs(raw, tmin=ecg_tmin, tmax=ecg_tmax,
-                                   picks=picks_, reject={'mag': 5e-12})
+                                   picks=picks_, reject=reject_)
     n_ecg_epochs_found = len(ecg_epochs.events)
     n_max_ecg_epochs = min(n_max_ecg_epochs, n_ecg_epochs_found)
     sel_ecg_epochs = np.arange(n_ecg_epochs_found)
@@ -276,7 +282,7 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
 
         # estimate average artifact
         eog_evoked = create_eog_epochs(raw, tmin=eog_tmin, tmax=eog_tmax,
-                                       picks=picks_).average()
+                                       picks=picks_, reject=reject_).average()
         fig = ica.plot_sources(eog_evoked, exclude=eog_inds)
         report.add_figs_to_section(fig, 'evoked sources ({})'.format(subject),
                                    section=comment + 'EOG', scale=img_scale)
