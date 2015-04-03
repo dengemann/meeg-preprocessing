@@ -214,6 +214,8 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
             reject_.pop(ch_type)
 
     picks_ = np.array([raw.ch_names.index(k) for k in ica.ch_names])
+    if 'eeg' in ica:
+        picks_ = np.append(picks_, pick_types(raw.info, meg=False, ecg=True)[0])
     ecg_epochs = create_ecg_epochs(raw, tmin=ecg_tmin, tmax=ecg_tmax,
                                    picks=picks_, reject=reject_)
     n_ecg_epochs_found = len(ecg_epochs.events)
