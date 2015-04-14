@@ -7,6 +7,7 @@ import numpy as np
 
 from mne.report import Report
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
+from mne import pick_types
 
 from .utils import get_data_picks
 
@@ -99,7 +100,7 @@ def check_apply_filter(raw, subject, filter_params=None,
 
     raw.notch_filter(**notch_filter_params)
 
-    ############################################################################
+    ###########################################################################
     # plot after filter
     for ax, (picks, ch_type) in iter_plot:
 
@@ -199,15 +200,28 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     elif 'EEG' in comment:
         topo_ch_type = 'eeg'
 
-    ############################################################################
+    ###########################################################################
     # 2) identify bad components by analyzing latent sources.
 
     title = '%s related to %s artifacts (red) ({})'.format(subject)
 
     # generate ECG epochs use detection via phase statistics
+    reject_ = {'mag': 5e-12, 'grad': 5000e-13, 'eeg': 300e-6}
+    if reject is not None:
+        reject_.update(reject)
+    for ch_type in ['mag', 'grad', 'eeg']:
+        if ch_type not in ica:
+            reject_.pop(ch_type)
 
+    picks_ = np.array([raw.ch_names.index(k) for k in ica.ch_names])
+    if 'eeg' in ica:
+        if 'ecg' in raw:
+            picks_ = np.append(picks_, 
+                               pick_types(raw.info, meg=False, ecg=True)[0])
+        else:
+            raise ValueError('There is no ECG channel')
     ecg_epochs = create_ecg_epochs(raw, tmin=ecg_tmin, tmax=ecg_tmax,
-                                   picks=None, reject={'mag': 5e-12})
+                                   picks=picks_, reject=reject_)
     n_ecg_epochs_found = len(ecg_epochs.events)
     n_max_ecg_epochs = min(n_max_ecg_epochs, n_ecg_epochs_found)
     sel_ecg_epochs = np.arange(n_ecg_epochs_found)
@@ -217,7 +231,7 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
 
     ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
     if len(ecg_inds) > 0:
-        ecg_evoked = ecg_epochs.average(picks=picks)
+        ecg_evoked = ecg_epochs.average()
         del ecg_epochs
         fig = ica.plot_scores(scores, exclude=ecg_inds,
                               title=title % ('scores', 'ecg'))
@@ -273,20 +287,27 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         ica.exclude += eog_inds
 
         # estimate average artifact
-        eog_evoked = create_eog_epochs(raw, tmin=eog_tmin, tmax=eog_tmax,
-                                       picks=None).average(picks=picks)
-        fig = ica.plot_sources(eog_evoked, exclude=eog_inds)
-        report.add_figs_to_section(fig, 'evoked sources ({})'.format(subject),
-                                   section=comment + 'EOG', scale=img_scale)
+        eog_epochs = create_eog_epochs(raw, tmin=eog_tmin, tmax=eog_tmax,
+                                       picks=picks_, reject=reject_)
+        if len(eog_epochs.events) > 1:
+            eog_evoked = eog_epochs.average()
+            fig = ica.plot_sources(eog_evoked, exclude=eog_inds)
+            report.add_figs_to_section(
+                fig, 'evoked sources ({})'.format(subject),
+                section=comment + 'EOG', scale=img_scale)
 
-        fig = ica.plot_overlay(eog_evoked, exclude=eog_inds)
-        report.add_figs_to_section(fig, 'rejection overlay({})'.format(subject),
-                                   section=comment + 'EOG', scale=img_scale)
+            fig = ica.plot_overlay(eog_evoked, exclude=eog_inds)
+            report.add_figs_to_section(
+                fig, 'rejection overlay({})'.format(subject),
+                section=comment + 'EOG', scale=img_scale)
+        else:
+            del eog_epochs
 
     # check the amplitudes do not change
     if len(ica.exclude) > 0:
         fig = ica.plot_overlay(raw)  # EOG artifacts remain
-        report.add_figs_to_section(fig, 'rejection overlay({})'.format(subject),
-                                   section=comment + 'RAW', scale=img_scale)
+        report.add_figs_to_section(
+            fig, 'rejection overlay({})'.format(subject),
+            section=comment + 'RAW', scale=img_scale)
 
     return ica, report
