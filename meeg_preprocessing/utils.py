@@ -118,10 +118,10 @@ def create_run_id():
 
     Returns
     -------
-    run_hash : str
-        A hex hash.
+    run_id : str
+        A a unique string in the 'YY-m-d_H_M_S' format.
     """
-    return str(time.time().hex())
+    return time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime())
 
 
 def setup_provenance(script, results_dir, use_agg=True):
