@@ -119,7 +119,8 @@ def create_run_id():
     Returns
     -------
     run_id : str
-        A a unique string in the 'YY-m-d_H_M_S' format.
+        A a unique string in the 'YY-m-d_H_M_S' format, for example:
+        '2015-04-28_11-42-32'
     """
     return time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime())
 
