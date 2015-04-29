@@ -112,14 +112,23 @@ def test_get_version():
 def test_setup_provenance():
     """Test provenance tracking"""
     tmp_dir = _TempDir()
+
+    config_path = op.join(tmp_dir, 'config.py')
+    with open(config_path, 'w') as fid_config:
+        fid_config.write('import antigravity')
+
     report, run_id, results_dir, logger = setup_provenance(
-        script=__file__, results_dir=tmp_dir)
+        script=__file__, results_dir=tmp_dir, config=None)
 
     logging_dir = op.join(results_dir, run_id)
     assert_true(op.isdir(logging_dir))
     assert_true(op.isfile(op.join(logging_dir, 'run_time.json')))
     assert_true(op.isfile(op.join(logging_dir, 'run_output.log')))
     assert_true(op.isfile(op.join(logging_dir, 'script.py')))
+
+    with open(op.join(results_dir, run_id, 'config.py')) as config_fid:
+        config_code = config_fid.read()
+    assert_equal(config_code, 'import antigravity')
 
     with open(__file__) as fid:
         this_file_code = fid.read()
