@@ -125,7 +125,7 @@ def create_run_id():
     return time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime())
 
 
-def setup_provenance(script, results_dir, use_agg=True):
+def setup_provenance(script, results_dir, config=None, use_agg=True):
     """Setup provenance tracking
 
     Parameters
@@ -134,6 +134,9 @@ def setup_provenance(script, results_dir, use_agg=True):
         The script that was executed.
     results_dir : str
         The results directory.
+    config : None | str
+        The name of the config file. By default, the function expects the
+        config to be under `__script__/' named `config.py`
     use_agg : bool
         Whether to use the 'Agg' backend for matplotlib or not.
 
@@ -180,7 +183,19 @@ def setup_provenance(script, results_dir, use_agg=True):
         with open(script) as script_fid:
             source_code = script_fid.read()
         fid.write(source_code)
-    logger.info('... logging source code')
+    logger.info('... logging source code of calling script')
+
+    if config is None:
+        config = op.join(op.dirname(script), 'config.py')
+    if op.isfile(config):
+        config_code = op.join(logging_dir, 'config.py')
+        with open(config_code, 'w') as fid:
+            with open(config) as config_fid:
+                source_code = config_fid.read()
+            fid.write(source_code)
+        logger.info('... logging source code of config.')
+    else:
+        logger.info('... No config found. Logging nothing.')
 
     logger.info('... preparing Report')
     report = Report(title=step)
