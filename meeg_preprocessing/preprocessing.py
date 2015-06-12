@@ -9,23 +9,7 @@ from mne.report import Report
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne import pick_types
 
-from .utils import get_data_picks
-
-
-def _prepare_filter_plot(raw, figsize):
-    """Aux function"""
-    import matplotlib.pyplot as plt
-
-    picks_list = get_data_picks(raw)
-    n_rows = len(picks_list)
-    fig, axes = plt.subplots(1, n_rows, sharey=True, sharex=True,
-                             figsize=(6 * n_rows, 6) if figsize is None
-                             else figsize)
-    if n_rows == 1:
-        axes = [axes]
-    else:
-        axes = axes.flatten()
-    return picks_list, n_rows, fig, axes
+from .viz import _prepare_filter_plot
 
 
 def check_apply_filter(raw, subject, filter_params=None,
@@ -80,7 +64,7 @@ def check_apply_filter(raw, subject, filter_params=None,
     iter_plot = zip(axes, picks_list)
     fmin, fmax = plot_fmin or 0, plot_fmax or raw.info['lowpass'] + 20
 
-    ############################################################################
+    ###########################################################################
     # plot before filter
     for ax, (picks, ch_type) in iter_plot:
 
@@ -92,7 +76,7 @@ def check_apply_filter(raw, subject, filter_params=None,
         ax.grid(True)
         ax.set_title(ch_type)
 
-    ############################################################################
+    ###########################################################################
     # filter
     for filter_params_ in filter_params:
         final_filter_params_ = deepcopy(_default_filter_params)
@@ -220,7 +204,7 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     picks_ = np.array([raw.ch_names.index(k) for k in ica.ch_names])
     if 'eeg' in ica:
         if 'ecg' in raw:
-            picks_ = np.append(picks_, 
+            picks_ = np.append(picks_,
                                pick_types(raw.info, meg=False, ecg=True)[0])
         else:
             raise ValueError('There is no ECG channel')
