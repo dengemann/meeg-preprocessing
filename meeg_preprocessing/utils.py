@@ -125,15 +125,17 @@ def create_run_id():
     return time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime())
 
 
-def setup_provenance(script, results_dir, config=None, use_agg=True):
+def setup_provenance(script=None, results_dir='results', config=None,
+                     use_agg=True):
     """Setup provenance tracking
 
     Parameters
     ----------
-    script : str
-        The script that was executed.
-    results_dir : str
-        The results directory.
+    script : str, None, optional
+        The script that was executed. If None, get the file name calling it.
+        Defaults to None.
+    results_dir : str, optional.
+        The results directory. Defaults to 'results'.
     config : None | str
         The name of the config file. By default, the function expects the
         config to be under `__script__/' named `config.py`
@@ -151,15 +153,28 @@ def setup_provenance(script, results_dir, config=None, use_agg=True):
     - sets log file for sterr output
     - writes log file with runtime information
     """
+    import inspect
+    if script is None:
+        script = inspect.stack()[1][1]
+        if script[0] == '<':
+            script = '__main__'
+
+    if not op.exists(results_dir):
+        os.mkdir(results_dir)
+
     if use_agg is True:
         import matplotlib
         matplotlib.use('Agg')
 
-    if not op.isfile(script):
+    if script != '__main__' and not op.isfile(script):
         raise ValueError('sorry, this is not a script!')
 
-    step = op.splitext(op.split(script)[1])[0]
-    results_dir = op.join(results_dir, step)
+    if script != '__main__':
+        step = op.splitext(op.split(script)[1])[0]
+        results_dir = op.join(results_dir, step)
+    else:
+        step = '__main__'
+
     if not op.exists(results_dir):
         logger.info('generating results dir')
         os.mkdir(results_dir)
@@ -178,10 +193,14 @@ def setup_provenance(script, results_dir, config=None, use_agg=True):
     logger.info('... writing runtime info to: %s' % runtime_log)
     std_logfile = op.join(logging_dir, 'run_output.log')
 
-    script_code = op.join(logging_dir, 'script.py')
-    with open(script_code, 'w') as fid:
+    if script != '__main__':
         with open(script) as script_fid:
             source_code = script_fid.read()
+    else:
+        source_code = 'setup_provenance()'
+
+    script_code = op.join(logging_dir, 'script.py')
+    with open(script_code, 'w') as fid:
         fid.write(source_code)
     logger.info('... logging source code of calling script')
 
