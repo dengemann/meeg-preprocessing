@@ -90,7 +90,7 @@ def check_apply_filter(raw, subject, filter_params=None,
     # plot after filter
     for ax, (picks, ch_type) in iter_plot:
 
-        raw.plot_psds(fmin=fmin, fmax=fmax, ax=ax,
+        raw.plot_psd(fmin=fmin, fmax=fmax, ax=ax,
                       picks=picks, color='red', show=show)
         second_line = ax.get_lines()[1]
         second_line.set_label('{} - filtered'.format(ch_type))
