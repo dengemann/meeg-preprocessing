@@ -125,6 +125,19 @@ def create_run_id():
     return time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime())
 
 
+def _forec_create_dir(path, start):
+    if start not in path:
+        raise RuntimeError('Start value is not valid for force create dir. '
+                           'Please ping @dengemann')
+    out_path = start
+    rest_path = path.split(start)[1]
+    path_split = rest_path.lstrip('/').split(op.sep)
+    for this_dir in path_split:
+        out_path = op.join(out_path, this_dir)
+        if not op.isdir(out_path):
+            os.mkdir(out_path)
+
+
 def setup_provenance(script, results_dir, config=None, use_agg=True):
     """Setup provenance tracking
 
@@ -161,10 +174,11 @@ def setup_provenance(script, results_dir, config=None, use_agg=True):
         results_dir = op.join(op.dirname(op.dirname(script)), results_dir)
 
     step = op.splitext(op.split(script)[1])[0]
+    start_path = op.dirname(results_dir)
     results_dir = op.join(results_dir, step)
     if not op.exists(results_dir):
         logger.info('generating results dir')
-        os.mkdir(results_dir)
+        _forec_create_dir(results_dir, start=start_path)
 
     run_id = create_run_id()
     logger.info('generated run id: %s' % run_id)
