@@ -157,6 +157,8 @@ def setup_provenance(script, results_dir, config=None, use_agg=True):
 
     if not op.isfile(script):
         raise ValueError('sorry, this is not a script!')
+    if not op.isdir(results_dir):
+        results_dir = op.join(op.dirname(op.dirname(script)), results_dir)
 
     step = op.splitext(op.split(script)[1])[0]
     results_dir = op.join(results_dir, step)
