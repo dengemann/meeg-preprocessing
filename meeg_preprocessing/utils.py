@@ -174,6 +174,8 @@ def setup_provenance(script, results_dir, config=None, use_agg=True):
         results_dir = op.join(op.dirname(op.dirname(script)), results_dir)
 
     step = op.splitext(op.split(script)[1])[0]
+    if not op.isabs(results_dir):
+        results_dir = op.abspath(results_dir)
     start_path = op.dirname(results_dir)
     results_dir = op.join(results_dir, step)
     if not op.exists(results_dir):
