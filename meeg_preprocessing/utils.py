@@ -138,7 +138,8 @@ def _forec_create_dir(path, start):
             os.mkdir(out_path)
 
 
-def setup_provenance(script, results_dir, config=None, use_agg=True):
+def setup_provenance(script, results_dir, config=None, use_agg=True,
+                     run_id=None):
     """Setup provenance tracking
 
     Parameters
@@ -182,8 +183,11 @@ def setup_provenance(script, results_dir, config=None, use_agg=True):
         logger.info('generating results dir')
         _forec_create_dir(results_dir, start=start_path)
 
-    run_id = create_run_id()
-    logger.info('generated run id: %s' % run_id)
+    if run_id is None:
+        run_id = create_run_id()
+        logger.info('generated run id: %s' % run_id)
+    else:
+        logger.info('using existing run id: %s' % run_id)
 
     logger.info('preparing logging:')
     logging_dir = op.join(results_dir, run_id)
