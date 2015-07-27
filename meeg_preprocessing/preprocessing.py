@@ -78,20 +78,23 @@ def check_apply_filter(raw, subject, filter_params=None,
 
     ###########################################################################
     # filter
+
+    # Note. It turns out to be safer to first run the notch filter.
+    # Ohterwise crazy notch resonance with some filter settings.
+    raw.notch_filter(**notch_filter_params)
+
     for filter_params_ in filter_params:
         final_filter_params_ = deepcopy(_default_filter_params)
         final_filter_params_.update(filter_params_)
         final_filter_params_.update({'n_jobs': n_jobs})
         raw.filter(**final_filter_params_)
 
-    raw.notch_filter(**notch_filter_params)
-
     ###########################################################################
     # plot after filter
     for ax, (picks, ch_type) in iter_plot:
 
         raw.plot_psd(fmin=fmin, fmax=fmax, ax=ax,
-                      picks=picks, color='red', show=show)
+                     picks=picks, color='red', show=show)
         second_line = ax.get_lines()[1]
         second_line.set_label('{} - filtered'.format(ch_type))
         ax.legend(loc='best')

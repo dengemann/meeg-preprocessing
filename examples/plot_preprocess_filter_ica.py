@@ -65,7 +65,6 @@ fig, report = check_apply_filter(raw, subject=subject,
                                  plot_fmin=plot_fmin, plot_fmax=plot_fmax,
                                  n_jobs=n_jobs, img_scale=img_scale)
 
-
 # get picks and iterate over channels
 for picks, ch_type in get_data_picks(raw, meg_combined=ica_meg_combined):
     ica, _ = compute_ica(raw, picks=picks,
