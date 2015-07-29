@@ -198,19 +198,19 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
     with open(runtime_log, 'w') as fid:
         json.dump(modules, fid)
     logger.info('... writing runtime info to: %s' % runtime_log)
-    std_logfile = op.join(logging_dir, 'run_output.log')
 
     script_code = op.join(logging_dir, 'script.py')
-    with open(script_code, 'w') as fid:
-        with open(script) as script_fid:
-            source_code = script_fid.read()
-        fid.write(source_code)
+    if not op.isfile(script_code):
+        with open(script_code, 'w') as fid:
+            with open(script) as script_fid:
+                source_code = script_fid.read()
+            fid.write(source_code)
     logger.info('... logging source code of calling script')
 
     if config is None:
         config = op.join(op.dirname(script), 'config.py')
-    if op.isfile(config):
-        config_code = op.join(logging_dir, 'config.py')
+    config_code = op.join(logging_dir, 'config.py')
+    if op.isfile(config) and op.isfile(config_code):
         with open(config_code, 'w') as fid:
             with open(config) as config_fid:
                 source_code = config_fid.read()
@@ -222,8 +222,10 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
     logger.info('... preparing Report')
     report = Report(title=step)
     report.data_path = logging_dir
+    std_logfile = op.join(logging_dir, 'run_output.log')
     logger.info('... setting logfile: %s' % std_logfile)
     set_log_file(std_logfile)
+
     return report, run_id, results_dir, logger
 
 
