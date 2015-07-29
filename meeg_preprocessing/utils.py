@@ -191,8 +191,11 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
 
     logger.info('preparing logging:')
     logging_dir = op.join(results_dir, run_id)
-    logger.info('... making logging directory: %s' % logging_dir)
-    os.mkdir(logging_dir)
+    if not op.isdir(logging_dir):
+        logger.info('... making logging directory: %s' % logging_dir)
+        os.mkdir(logging_dir)
+    else:
+        logger.info('... using logging directory: %s' % logging_dir)
     modules = get_versions(sys)
     runtime_log = op.join(logging_dir, 'run_time.json')
     with open(runtime_log, 'w') as fid:
