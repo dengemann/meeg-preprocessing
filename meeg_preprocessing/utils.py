@@ -191,7 +191,7 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
 
     logger.info('preparing logging:')
     logging_dir = op.join(results_dir, run_id)
-    if not op.isdir(logging_dir):
+    if not op.exists(logging_dir):
         logger.info('... making logging directory: %s' % logging_dir)
         os.mkdir(logging_dir)
     else:
