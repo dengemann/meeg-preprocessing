@@ -254,3 +254,12 @@ def set_eog_ecg_channels(raw, eog_ch='EEG062', ecg_ch='EEG063'):
         raw.info['chs'][raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_EOG_CH
     for channel in ecg_ch:
         raw.info['chs'][raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_ECG_CH
+
+
+def handle_mkl(max_threads):
+    """Set max threads if mkl is availavle"""
+    try:
+        import mkl
+        mkl.set_num_threads(max_threads)
+    except ImportError:
+        pass
