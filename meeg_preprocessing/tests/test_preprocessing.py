@@ -88,6 +88,13 @@ def test_preprocessing_ica():
     n_max_eog = 0
     n_plots = (5 if n_max_ecg > 0 else 0) + (5 if n_max_eog > 0 else 0)
     n_plots += (1 if n_plots != 0 else 0)
+
+    # test EEG
+    picks = mne.pick_types(raw.info, meg=False, eeg=True)[:5]
+    ica, report = compute_ica(raw, n_components=4, picks=picks,
+                              subject='test-subject', decim=2,
+                              n_max_ecg=n_max_ecg, n_max_eog=n_max_eog)
+
     ica, report = compute_ica(raw, n_components=4, picks=[0, 1, 2, 3, 5],
                               subject='test-subject', decim=2,
                               n_max_ecg=n_max_ecg, n_max_eog=n_max_eog)
@@ -100,6 +107,8 @@ def test_preprocessing_ica():
                               subject='test-subject', decim=2,
                               n_max_ecg=n_max_ecg, n_max_eog=n_max_eog)
     assert_equal(ica.n_components_, rank)
+
+
 if __name__ == "__main__":
     import nose
     nose.run(defaultTest=__name__)

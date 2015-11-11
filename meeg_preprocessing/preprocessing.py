@@ -213,8 +213,9 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         else:
             logger.info('There is no ECG channel, trying to guess ECG from '
                         'magnetormeters')
+
     ecg_epochs = create_ecg_epochs(raw, tmin=ecg_tmin, tmax=ecg_tmax,
-                                   picks=picks_, reject=reject_)
+                                   keep_ecg=True, picks=picks_, reject=reject_)
     n_ecg_epochs_found = len(ecg_epochs.events)
     n_max_ecg_epochs = min(n_max_ecg_epochs, n_ecg_epochs_found)
     sel_ecg_epochs = np.arange(n_ecg_epochs_found)
@@ -226,26 +227,29 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     if len(ecg_inds) > 0:
         ecg_evoked = ecg_epochs.average()
         del ecg_epochs
-        fig = ica.plot_scores(scores, exclude=ecg_inds,
-                              title=title % ('scores', 'ecg'), show=show)
+        fig = ica.plot_scores(scores, exclude=ecg_inds, labels='ecg',
+                              title='', show=show)
         report.add_figs_to_section(fig, 'scores ({})'.format(subject),
                                    section=comment + 'ECG',
                                    scale=img_scale)
 
+        current_exclude = [e for e in ica.exclude]  # issue #2608 MNE
         fig = ica.plot_sources(raw, ecg_inds, exclude=ecg_inds,
                                title=title % ('components', 'ecg'), show=show)
+
         report.add_figs_to_section(fig, 'sources ({})'.format(subject),
                                    section=comment + 'ECG',
                                    scale=img_scale)
+        ica.exclude = current_exclude
 
         fig = ica.plot_components(ecg_inds, ch_type=topo_ch_type,
                                   title='', colorbar=True, show=show)
         report.add_figs_to_section(fig, title % ('sources', 'ecg'),
                                    section=comment + 'ECG', scale=img_scale)
+        ica.exclude = current_exclude
 
         ecg_inds = ecg_inds[:n_max_ecg]
         ica.exclude += ecg_inds
-
         fig = ica.plot_sources(ecg_evoked, exclude=ecg_inds, show=show)
         report.add_figs_to_section(fig, 'evoked sources ({})'.format(subject),
                                    section=comment + 'ECG',
@@ -259,22 +263,26 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
 
     # detect EOG by correlation
     eog_inds, scores = ica.find_bads_eog(raw)
+
     if len(eog_inds) > 0:
-        fig = ica.plot_scores(scores, exclude=eog_inds,
-                              title=title % ('scores', 'eog'), show=show)
+        fig = ica.plot_scores(scores, exclude=eog_inds, labels='eog',
+                              show=show, title='')
         report.add_figs_to_section(fig, 'scores ({})'.format(subject),
                                    section=comment + 'EOG',
                                    scale=img_scale)
 
+        current_exclude = [e for e in ica.exclude]  # issue #2608 MNE
         fig = ica.plot_sources(raw, eog_inds, exclude=ecg_inds,
                                title=title % ('sources', 'eog'), show=show)
         report.add_figs_to_section(fig, 'sources', section=comment + 'EOG',
                                    scale=img_scale)
+        ica.exclude = current_exclude
 
         fig = ica.plot_components(eog_inds, ch_type=topo_ch_type,
                                   title='', colorbar=True, show=show)
         report.add_figs_to_section(fig, title % ('components', 'eog'),
                                    section=comment + 'EOG', scale=img_scale)
+        ica.exclude = current_exclude
 
         eog_inds = eog_inds[:n_max_eog]
         ica.exclude += eog_inds
