@@ -8,6 +8,7 @@ import numpy as np
 from mne.report import Report
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne import pick_types
+from mne.utils import logger
 
 from .viz import _prepare_filter_plot
 
@@ -69,7 +70,7 @@ def check_apply_filter(raw, subject, filter_params=None,
     for ax, (picks, ch_type) in iter_plot:
 
         raw.plot_psd(fmin=fmin, fmax=fmax, ax=ax,
-                      picks=picks, color='black', show=show)
+                     picks=picks, color='black', show=show)
         first_line = ax.get_lines()[0]
         first_line.set_label('{} - raw'.format(ch_type))
         ax.set_ylabel('Power (dB)')
@@ -210,7 +211,8 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
             picks_ = np.append(picks_,
                                pick_types(raw.info, meg=False, ecg=True)[0])
         else:
-            raise ValueError('There is no ECG channel')
+            logger.info('There is no ECG channel, trying to guess ECG from '
+                        'magnetormeters')
     ecg_epochs = create_ecg_epochs(raw, tmin=ecg_tmin, tmax=ecg_tmax,
                                    picks=picks_, reject=reject_)
     n_ecg_epochs_found = len(ecg_epochs.events)
