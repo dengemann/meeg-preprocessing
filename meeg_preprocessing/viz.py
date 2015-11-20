@@ -88,3 +88,40 @@ def plot_psd_ica_overlay(raw, ica, fmin=None, fmax=None, n_jobs=1,
 
     fig.suptitle('Multitaper PSD')
     return fig
+
+
+def _render_components_table(ica):
+    css = '''<style type="text/css">
+        table.scores {
+        border: 1px solid black;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        margin-left: auto;
+        margin-right: auto;}
+        table.scores th {
+        width: 150px;
+        text-align:left;
+        padding-top: 10px;
+        padding-left: 10px;
+        font-size: 20px;}
+        table.scores td {
+        text-align:left;
+        padding-top: 10px;
+        padding-left: 10px;
+        font-size: 16px;}</style>'''
+
+    header = ('<tr><th>label</th><th>component indices</th></tr>')
+    table_content = ''
+    row = '<tr><td>{label}</td><td>{components}</td></td></tr>'
+    for label, components in ica.labels_.items():
+        if '/' in label:
+            split = label.split('/')
+            label = split[0] + '-' + split[-1]
+        table_content += row.format(
+            label=label,
+            components='%s' % components)
+
+    table = '''{0}<h4>ICA solution</h4><div class="thumbnail">
+            <table class="scores">{1}{2}</table></div>'''.format(
+        css, header, table_content)
+    return table

@@ -10,7 +10,7 @@ from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne import pick_types
 from mne.utils import logger
 
-from .viz import _prepare_filter_plot
+from .viz import _prepare_filter_plot, _render_components_table
 
 
 def check_apply_filter(raw, subject, filter_params=None,
@@ -227,8 +227,10 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     if len(ecg_inds) > 0:
         ecg_evoked = ecg_epochs.average()
         del ecg_epochs
+
         fig = ica.plot_scores(scores, exclude=ecg_inds, labels='ecg',
                               title='', show=show)
+
         report.add_figs_to_section(fig, 'scores ({})'.format(subject),
                                    section=comment + 'ECG',
                                    scale=img_scale)
@@ -307,6 +309,10 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     # check the amplitudes do not change
     if len(ica.exclude) > 0:
         fig = ica.plot_overlay(raw, show=show)  # EOG artifacts remain
+        html = _render_components_table(ica)
+        report.add_htmls_to_section(
+            html, captions='excluded components',
+            section='ICA rejection summary (%s)' % ch_type)
         report.add_figs_to_section(
             fig, 'rejection overlay({})'.format(subject),
             section=comment + 'RAW', scale=img_scale)
