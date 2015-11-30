@@ -221,7 +221,11 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     sel_ecg_epochs = np.arange(n_ecg_epochs_found)
     rng = np.random.RandomState(42)
     rng.shuffle(sel_ecg_epochs)
+    ecg_ave = ecg_epochs.average()
+    report.add_figs_to_section(ecg_ave.plot(), 'ECG-full', 'artifacts')
     ecg_epochs = ecg_epochs[sel_ecg_epochs[:n_max_ecg_epochs]]
+    ecg_ave = ecg_epochs.average()
+    report.add_figs_to_section(ecg_ave.plot(), 'ECG-used', 'artifacts')
 
     ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
     if len(ecg_inds) > 0:
@@ -264,8 +268,17 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
                                    scale=img_scale)
 
     # detect EOG by correlation
-    eog_inds, scores = ica.find_bads_eog(raw)
+    picks_eog = np.concatenate(
+        [picks_, pick_types(raw.info, meg=False, eeg=False, ecg=False,
+                            eog=True)])
 
+    eog_epochs = create_eog_epochs(raw, tmin=eog_tmin, tmax=eog_tmax,
+                                   picks=picks_eog, reject=reject_)
+    eog_ave = eog_epochs.average()
+    report.add_figs_to_section(eog_ave.plot(), 'EOG-used', 'artifacts')
+
+    eog_inds, scores = ica.find_bads_eog(eog_epochs)
+    del eog_epochs
     if len(eog_inds) > 0:
         fig = ica.plot_scores(scores, exclude=eog_inds, labels='eog',
                               show=show, title='')
