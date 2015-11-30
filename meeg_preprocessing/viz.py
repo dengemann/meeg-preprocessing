@@ -115,7 +115,7 @@ def _render_components_table(ica):
     row = '<tr><td>{label}</td><td>{components}</td></td></tr>'
     for label, components in ica.labels_.items():
         if '-None' in label:
-            continue
+            label = label.replace('-None', 'synthetic')
         if '/' in label:
             split = label.split('/')
             label = split[0] + '-' + split[-1]
