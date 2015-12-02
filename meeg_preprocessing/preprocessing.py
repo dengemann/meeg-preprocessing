@@ -9,8 +9,10 @@ from mne.report import Report
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne import pick_types
 from mne.utils import logger
+from mne.defaults import _handle_default
 
 from .viz import _prepare_filter_plot, _render_components_table
+from .utils import get_data_picks
 
 
 def check_apply_filter(raw, subject, filter_params=None,
@@ -106,11 +108,20 @@ def check_apply_filter(raw, subject, filter_params=None,
     return fig, report
 
 
+def _put_artifact_range(info, evoked, kind):
+    """Helper to set artifact stats"""
+    ch_scales = _handle_default('scalings')
+    for this_picks, ch_type in get_data_picks(evoked, meg_combined=False):
+        amp_range = (evoked.data[this_picks].max() -
+                     evoked.data[this_picks].min()) * ch_scales[ch_type]
+        info.update({'%s_amp_range_%s' % (kind, ch_type): amp_range})
+
+
 def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
                 reject=None, ecg_tmin=-0.5, ecg_tmax=0.5, eog_tmin=-0.5,
                 eog_tmax=0.5, n_max_ecg=3, n_max_eog=1,
                 n_max_ecg_epochs=200, show=True, img_scale=1.0,
-                report=None):
+                random_state=None, report=None, artifact_stats=None):
     """Run ICA in raw data
 
     Parameters
@@ -159,22 +170,29 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         Show figure if True
     scale_img : float
         The scaling factor for the report. Defaults to 1.0.
+    random_state : None | int | instance of np.random.RandomState
+        np.random.RandomState to initialize the FastICA estimation.
+        As the estimation is non-deterministic it can be useful to
+        fix the seed to have reproducible results. Defaults to None.
     report : instance of Report | None
         The report object. If None, a new report will be generated.
+    artifact_stats : None | dict
+        A dict that contains info on amplitude ranges of artifacts and
+        numbers of events, etc. by channel type.
 
     Returns
     -------
-    ica : isntance of ICA
+    ica : instance of ICA
         The ICA solution.
-    report : instance of Report
-        The report object.
+    report : dict
+        A dict with an html report ('html') and artifact statistics ('stats').
     """
     if report is None:
         report = Report(subject=subject, title='ICA preprocessing')
     if n_components == 'rank':
         n_components = raw.estimate_rank(picks=picks)
     ica = ICA(n_components=n_components, max_pca_components=None,
-              max_iter=256)
+              random_state=random_state, max_iter=256)
     ica.fit(raw, picks=picks, decim=decim, reject=reject)
 
     comment = []
@@ -214,18 +232,28 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
             logger.info('There is no ECG channel, trying to guess ECG from '
                         'magnetormeters')
 
+    if artifact_stats is None:
+        artifact_stats = dict()
+
     ecg_epochs = create_ecg_epochs(raw, tmin=ecg_tmin, tmax=ecg_tmax,
                                    keep_ecg=True, picks=picks_, reject=reject_)
+
     n_ecg_epochs_found = len(ecg_epochs.events)
+    artifact_stats['ecg_n_events'] = n_ecg_epochs_found
     n_max_ecg_epochs = min(n_max_ecg_epochs, n_ecg_epochs_found)
+    artifact_stats['ecg_n_used'] = n_max_ecg_epochs
+
     sel_ecg_epochs = np.arange(n_ecg_epochs_found)
     rng = np.random.RandomState(42)
     rng.shuffle(sel_ecg_epochs)
     ecg_ave = ecg_epochs.average()
+
     report.add_figs_to_section(ecg_ave.plot(), 'ECG-full', 'artifacts')
     ecg_epochs = ecg_epochs[sel_ecg_epochs[:n_max_ecg_epochs]]
     ecg_ave = ecg_epochs.average()
     report.add_figs_to_section(ecg_ave.plot(), 'ECG-used', 'artifacts')
+
+    _put_artifact_range(artifact_stats, ecg_ave, kind='ecg')
 
     ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
     if len(ecg_inds) > 0:
@@ -274,8 +302,11 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
 
     eog_epochs = create_eog_epochs(raw, tmin=eog_tmin, tmax=eog_tmax,
                                    picks=picks_eog, reject=reject_)
+    artifact_stats['eog_n_events'] = len(eog_epochs.events)
+    artifact_stats['eog_n_used'] = artifact_stats['eog_n_events']
     eog_ave = eog_epochs.average()
     report.add_figs_to_section(eog_ave.plot(), 'EOG-used', 'artifacts')
+    _put_artifact_range(artifact_stats, eog_ave, kind='eog')
 
     eog_inds, scores = ica.find_bads_eog(eog_epochs)
     del eog_epochs
@@ -329,5 +360,4 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         report.add_figs_to_section(
             fig, 'rejection overlay({})'.format(subject),
             section=comment + 'RAW', scale=img_scale)
-
-    return ica, report
+    return ica, dict(html=report, stats=artifact_stats)

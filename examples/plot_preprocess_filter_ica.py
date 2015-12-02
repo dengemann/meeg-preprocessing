@@ -48,13 +48,18 @@ fig, report = check_apply_filter(raw, subject=subject,
                                  n_jobs=n_jobs, img_scale=img_scale)
 
 # get picks and iterate over channels
+artifact_stats = dict()
 for picks, ch_type in get_data_picks(raw, meg_combined=ica_meg_combined):
     ica, _ = compute_ica(raw, picks=picks,
                          subject=subject, n_components=n_components,
                          n_max_ecg=n_max_ecg, n_max_eog=n_max_eog,
                          reject=ica_reject,
+                         random_state=42,
+                         artifact_stats=artifact_stats,
                          decim=decim, report=report, img_scale=img_scale)
     ica.save('{}-ica.fif'.format(ch_type))
+import pdb; pdb.set_trace()
+
 
 report.save(  # save in automatically generated folder
     op.join(results_dir, run_id,
