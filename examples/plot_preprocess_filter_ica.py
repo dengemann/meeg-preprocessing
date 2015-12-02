@@ -58,8 +58,9 @@ for picks, ch_type in get_data_picks(raw, meg_combined=ica_meg_combined):
                          artifact_stats=artifact_stats,
                          decim=decim, report=report, img_scale=img_scale)
     ica.save('{}-ica.fif'.format(ch_type))
-import pdb; pdb.set_trace()
 
+for k, v in artifact_stats.items():
+    print(k, v)
 
 report.save(  # save in automatically generated folder
     op.join(results_dir, run_id,
