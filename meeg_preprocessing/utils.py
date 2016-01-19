@@ -150,7 +150,8 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
         The results directory.
     config : None | str
         The name of the config file. By default, the function expects the
-        config to be under `__script__/' named `config.py`
+        config to be under `__script__/' named `config.py`. It can also
+        be another kind of textfile, e.g. .json.
     use_agg : bool
         Whether to use the 'Agg' backend for matplotlib or not.
 
@@ -211,16 +212,26 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
     logger.info('... logging source code of calling script')
 
     if config is None:
-        config = op.join(op.dirname(script), 'config.py')
-    config_code = op.join(logging_dir, 'config.py')
-    if op.isfile(config) and op.isfile(config_code):
+        config = 'config.py'
+
+    if op.isabs(config):
+        config_fname = config
+    else:
+        config_fname = op.join(op.dirname(script), config)
+
+    config_code = op.join(  # weird behavior of join if last arg is path
+        results_dir, run_id, op.split(config_fname)[-1])
+    if not op.isfile(config_fname):
+        logger.info('... No config found. Logging nothing.')
+    elif op.isfile(config_code):
+        logger.info('... Config already written. I assume that you are using'
+                    ' the same run_id for different runs of your script.')
+    else:
         with open(config_code, 'w') as fid:
-            with open(config) as config_fid:
+            with open(config_fname) as config_fid:
                 source_code = config_fid.read()
             fid.write(source_code)
-        logger.info('... logging source code of config.')
-    else:
-        logger.info('... No config found. Logging nothing.')
+        logger.info('... logging source code of "%s".' % config_fname)
 
     logger.info('... preparing Report')
     report = Report(title=step)

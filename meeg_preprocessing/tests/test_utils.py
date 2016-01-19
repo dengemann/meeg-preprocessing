@@ -111,39 +111,53 @@ def test_get_version():
 
 def test_setup_provenance():
     """Test provenance tracking"""
-    tmp_dir = _TempDir()
 
-    config_path = op.join(tmp_dir, 'config.py')
-    with open(config_path, 'w') as fid_config:
-        fid_config.write('import antigravity')
+    for config_opt in ['abs_py', 'default', 'other']:
+        tmp_dir = _TempDir()
+        if config_opt == 'default':
+            config_fname = op.join(op.dirname(__file__), 'config.py')
+            config_content = 'import this'
+            config_param = None
+        elif config_opt == 'abs_py':
+            config_fname = op.join(tmp_dir, 'config.py')
+            config_content = 'import antigravity'
+            config_param = config_fname
+        elif config_opt == 'other':
+            config_fname = op.join(tmp_dir, 'config.txt')
+            config_content = 'my_config :: 42'
+            config_param = config_fname
+        with open(config_fname, 'w') as fid_config:
+            fid_config.write(config_content)
 
-    report, run_id, results_dir, logger = setup_provenance(
-        script=__file__, results_dir=tmp_dir, config=None)
+        report, run_id, results_dir, logger = setup_provenance(
+            script=__file__, results_dir=tmp_dir, config=config_param)
 
-    logging_dir = op.join(results_dir, run_id)
-    assert_true(op.isdir(logging_dir))
-    assert_true(op.isfile(op.join(logging_dir, 'run_time.json')))
-    assert_true(op.isfile(op.join(logging_dir, 'run_output.log')))
-    assert_true(op.isfile(op.join(logging_dir, 'script.py')))
+        logging_dir = op.join(results_dir, run_id)
+        assert_true(op.isdir(logging_dir))
+        assert_true(op.isfile(op.join(logging_dir, 'run_time.json')))
+        assert_true(op.isfile(op.join(logging_dir, 'run_output.log')))
+        assert_true(op.isfile(op.join(logging_dir, 'script.py')))
 
-    with open(op.join(results_dir, run_id, 'config.py')) as config_fid:
-        config_code = config_fid.read()
-    assert_equal(config_code, 'import antigravity')
+        config_basename = op.split(config_fname)[-1]
+        with open(op.join(results_dir, run_id, config_basename)) as config_fid:
+            config_code = config_fid.read()
+        assert_equal(config_code, config_content)
 
-    with open(__file__) as fid:
-        this_file_code = fid.read()
+        with open(__file__) as fid:
+            this_file_code = fid.read()
 
-    with open(op.join(results_dir, run_id, 'script.py')) as fid:
-        other_file_code = fid.read()
+        with open(op.join(results_dir, run_id, 'script.py')) as fid:
+            other_file_code = fid.read()
 
-    assert_equals(this_file_code, other_file_code)
+        assert_equals(this_file_code, other_file_code)
+        with open(op.join(results_dir, run_id, 'run_time.json')) as fid:
+            modules = json.load(fid)
+            assert_true('meeg_preprocessing' in modules)
 
-    with open(op.join(results_dir, run_id, 'run_time.json')) as fid:
-        modules = json.load(fid)
-        assert_true('meeg_preprocessing' in modules)
-
-    assert_equals(report.title, op.splitext(op.split(__file__)[1])[0])
-    assert_equals(report.data_path, logging_dir)
+        assert_equals(report.title, op.splitext(op.split(__file__)[1])[0])
+        assert_equals(report.data_path, logging_dir)
+        if config_opt == 'default':
+            os.remove(config_fname)
 
 
 def test_set_eog_ecg_channels():

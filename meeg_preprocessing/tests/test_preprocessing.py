@@ -86,8 +86,6 @@ def test_preprocessing_ica():
     """Test ICA preprocessing"""
     n_max_ecg = 1
     n_max_eog = 0
-    n_plots = (5 if n_max_ecg > 0 else 0) + (5 if n_max_eog > 0 else 0)
-    n_plots += (1 if n_plots != 0 else 0)
 
     # test EEG
     picks = mne.pick_types(raw.info, meg=False, eeg=True)[:5]
@@ -99,8 +97,10 @@ def test_preprocessing_ica():
                               subject='test-subject', decim=2,
                               n_max_ecg=n_max_ecg, n_max_eog=n_max_eog)
     assert_equal(len(ica.exclude), n_max_ecg)
-    assert_equal(report.sections, ['MAG+GRAD ECG', 'MAG+GRAD RAW'])
-    assert_equal(len(report.html), n_plots)
+    assert_equal(report['html'].sections,
+                 ['artifacts', 'MAG+GRAD ECG', 'ICA rejection summary (eeg)',
+                  'MAG+GRAD RAW'])
+
     picks = np.array([0, 1, 2, 3, 5])
     rank = raw.estimate_rank(picks=picks)
     ica, report = compute_ica(raw, n_components='rank', picks=picks,
