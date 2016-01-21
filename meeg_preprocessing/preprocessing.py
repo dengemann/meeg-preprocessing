@@ -308,10 +308,11 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     report.add_figs_to_section(eog_ave.plot(), 'EOG-used', 'artifacts')
     _put_artifact_range(artifact_stats, eog_ave, kind='eog')
 
+    eog_inds = None
     if len(eog_epochs.events) > 0:
         eog_inds, scores = ica.find_bads_eog(eog_epochs)
         del eog_epochs
-    if len(eog_inds) > 0 and len(eog_epochs.events) > 0:
+    if eog_inds is not None and len(eog_epochs.events) > 0:
         fig = ica.plot_scores(scores, exclude=eog_inds, labels='eog',
                               show=show, title='')
         report.add_figs_to_section(fig, 'scores ({})'.format(subject),
