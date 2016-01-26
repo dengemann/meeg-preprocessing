@@ -311,7 +311,7 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
     eog_inds = None
     if len(eog_epochs.events) > 0:
         eog_inds, scores = ica.find_bads_eog(eog_epochs)
-        del eog_epochs
+
     if eog_inds is not None and len(eog_epochs.events) > 0:
         fig = ica.plot_scores(scores, exclude=eog_inds, labels='eog',
                               show=show, title='')
@@ -335,22 +335,18 @@ def compute_ica(raw, subject, n_components=0.99, picks=None, decim=None,
         eog_inds = eog_inds[:n_max_eog]
         ica.exclude += eog_inds
 
-        # estimate average artifact
-        eog_epochs = create_eog_epochs(raw, tmin=eog_tmin, tmax=eog_tmax,
-                                       picks=picks_, reject=reject_)
-        if len(eog_epochs.events) > 1:
-            eog_evoked = eog_epochs.average()
-            fig = ica.plot_sources(eog_evoked, exclude=eog_inds, show=show)
-            report.add_figs_to_section(
-                fig, 'evoked sources ({})'.format(subject),
-                section=comment + 'EOG', scale=img_scale)
+        eog_evoked = eog_epochs.average()
+        fig = ica.plot_sources(eog_evoked, exclude=eog_inds, show=show)
+        report.add_figs_to_section(
+            fig, 'evoked sources ({})'.format(subject),
+            section=comment + 'EOG', scale=img_scale)
 
-            fig = ica.plot_overlay(eog_evoked, exclude=eog_inds, show=show)
-            report.add_figs_to_section(
-                fig, 'rejection overlay({})'.format(subject),
-                section=comment + 'EOG', scale=img_scale)
-        else:
-            del eog_epochs
+        fig = ica.plot_overlay(eog_evoked, exclude=eog_inds, show=show)
+        report.add_figs_to_section(
+            fig, 'rejection overlay({})'.format(subject),
+            section=comment + 'EOG', scale=img_scale)
+    else:
+        del eog_epochs
 
     # check the amplitudes do not change
     if len(ica.exclude) > 0:
