@@ -8,6 +8,7 @@ import subprocess
 import time
 import json
 from distutils.version import LooseVersion
+import inspect
 
 from mne import pick_types
 from mne.utils import logger, set_log_file
@@ -170,14 +171,22 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
         import matplotlib
         matplotlib.use('Agg')
 
-    if not op.isfile(script):
-        raise ValueError('sorry, this is not a script!')
-    if not op.isdir(results_dir):
+    if not callable(script):
+        if not op.isfile(script):
+            raise ValueError('sorry, this is not a script!')
+    if not op.isdir(results_dir) and not callable(script):
         results_dir = op.join(op.dirname(op.dirname(script)), results_dir)
+    else:
+        results_dir = op.join(op.curdir, results_dir)
 
-    step = op.splitext(op.split(script)[1])[0]
+    if not callable(script):
+        step = op.splitext(op.split(script)[1])[0]
+    else:
+        step = script.__name__
+
     if not op.isabs(results_dir):
         results_dir = op.abspath(results_dir)
+
     start_path = op.dirname(results_dir)
     results_dir = op.join(results_dir, step)
     if not op.exists(results_dir):
@@ -203,10 +212,15 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
         json.dump(modules, fid)
     logger.info('... writing runtime info to: %s' % runtime_log)
 
-    script_code = op.join(logging_dir, 'script.py')
-    if not op.isfile(script_code):
-        with open(script_code, 'w') as fid:
-            with open(script) as script_fid:
+    script_code_out = op.join(logging_dir, 'script.py')
+    if callable(script):
+        script_code_in = inspect.getsourcefile(script)
+    else:
+        script_code_in = script
+
+    if not op.isfile(script_code_out):
+        with open(script_code_out, 'w') as fid:
+            with open(script_code_in) as script_fid:
                 source_code = script_fid.read()
             fid.write(source_code)
     logger.info('... logging source code of calling script')
@@ -217,7 +231,7 @@ def setup_provenance(script, results_dir, config=None, use_agg=True,
     if op.isabs(config):
         config_fname = config
     else:
-        config_fname = op.join(op.dirname(script), config)
+        config_fname = ''
 
     config_code = op.join(  # weird behavior of join if last arg is path
         results_dir, run_id, op.split(config_fname)[-1])
@@ -262,9 +276,11 @@ def set_eog_ecg_channels(raw, eog_ch='EEG062', ecg_ch='EEG063'):
     if isinstance(ecg_ch, basestring):
         ecg_ch = [ecg_ch]
     for channel in eog_ch:
-        raw.info['chs'][raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_EOG_CH
+        raw.info['chs'][
+            raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_EOG_CH
     for channel in ecg_ch:
-        raw.info['chs'][raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_ECG_CH
+        raw.info['chs'][
+            raw.ch_names.index(channel)]['kind'] = FIFF.FIFFV_ECG_CH
 
 
 def handle_mkl(max_threads):
