@@ -101,6 +101,8 @@ def get_versions(sys):
     for name, module in sys.modules.items():
         if '.' in name:
             continue
+        if isinstance(name, str) and len(name) and name[0] == '_':
+            continue
         module_version = LooseVersion(getattr(module, '__version__', None))
         module_version = getattr(module_version, 'vstring', None)
         if module_version is None:
